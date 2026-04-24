@@ -1,208 +1,221 @@
 /* ============================================================
-   GRUPOMAKA Financial Division — script.js
-   Three.js  ·  GSAP + ScrollTrigger + ScrollSmoother
-   Zenith X motion logic
+   GRUPOMAKA División Financiera — script.js
+   Three.js · GSAP + ScrollTrigger · Zenith X motion logic
+   NO ScrollSmoother — native scroll, always works
    ============================================================ */
 
 'use strict';
 
-/* ── 0. REGISTER GSAP PLUGINS ─────────────────────────────── */
-gsap.registerPlugin(ScrollTrigger, ScrollSmoother);
+gsap.registerPlugin(ScrollTrigger);
 
-/* ── 1. SMOOTH SCROLLER ───────────────────────────────────── */
-let smoother;
-try {
-  smoother = ScrollSmoother.create({
-    wrapper:  '#smooth-wrapper',
-    content:  '#smooth-content',
-    smooth:   1.8,
-    effects:  true,
-    smoothTouch: 0.1,
-  });
-} catch (e) {
-  // ScrollSmoother unavailable — fall back to native scroll
-  document.documentElement.style.scrollBehavior = 'smooth';
-}
+/* ─────────────────────────────────────────────────────────────
+   1. RENDERER + SCENE + CAMERA
+   ───────────────────────────────────────────────────────────── */
+const canvas = document.getElementById('canvas');
 
-/* ── 2. THREE.JS RENDERER & SCENE ─────────────────────────── */
-const canvas   = document.getElementById('canvas');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.toneMapping        = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.3;
+renderer.toneMapping         = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.4;
 
 const scene  = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 100);
-camera.position.set(0, 0, 6.5);
 
-/* ── 3. COIN CONSTANTS ────────────────────────────────────── */
+function setCameraZ() {
+  camera.position.z = window.innerWidth < 600 ? 9 : window.innerWidth < 900 ? 7.5 : 6.5;
+}
+setCameraZ();
+
+/* ─────────────────────────────────────────────────────────────
+   2. COIN CONSTANTS + MATERIALS
+   ───────────────────────────────────────────────────────────── */
 const CR = 1.5;   // coin radius
-const CT = 0.18;  // coin thickness
+const CT = 0.18;  // coin thickness along Z
 const HT = CT / 2;
 
-/* ── 4. MATERIALS ─────────────────────────────────────────── */
-const matGold = new THREE.MeshStandardMaterial({
-  color:            new THREE.Color('#c9a84c'),
-  metalness:        1.0,
-  roughness:        0.1,
-  envMapIntensity:  2.5,
-});
+function mkMat(hex, metalness, roughness, extra) {
+  return new THREE.MeshStandardMaterial(
+    Object.assign({ color: new THREE.Color(hex), metalness, roughness, envMapIntensity: 2.2 }, extra)
+  );
+}
 
-const matGoldDeep = new THREE.MeshStandardMaterial({
-  color:            new THREE.Color('#7a5c0e'),
-  metalness:        1.0,
-  roughness:        0.25,
-  envMapIntensity:  1.5,
-});
+const matGold   = mkMat('#c9a84c', 1.0, 0.08);
+const matGoldMd = mkMat('#9a7020', 1.0, 0.22);
+const matTi     = mkMat('#080808', 0.88, 0.42, { side: THREE.DoubleSide });
+const matPlate  = mkMat('#050505', 0.70, 0.60, { transparent: true, opacity: 0.93 });
 
-const matTitanium = new THREE.MeshStandardMaterial({
-  color:            new THREE.Color('#080808'),
-  metalness:        0.85,
-  roughness:        0.45,
-  envMapIntensity:  0.6,
-  side:             THREE.DoubleSide,
-});
+/* ─────────────────────────────────────────────────────────────
+   3. PROCEDURAL LOGO CANVAS TEXTURE  (instant — no file load)
+   ───────────────────────────────────────────────────────────── */
+function makeLogoTexture() {
+  const cv  = document.createElement('canvas');
+  cv.width  = 512;
+  cv.height = 512;
+  const cx  = cv.getContext('2d');
+  const cx0 = 256, cy0 = 256;
 
-const matGear = (hex, r = 0.12) => new THREE.MeshStandardMaterial({
-  color:           new THREE.Color(hex),
-  metalness:       1.0,
-  roughness:       r,
+  const grd = cx.createRadialGradient(cx0, cy0 - 30, 0, cx0, cy0, 180);
+  grd.addColorStop(0, 'rgba(232,201,122,1)');
+  grd.addColorStop(1, 'rgba(138,106,26,0.85)');
+
+  /* Rings */
+  [215, 178, 142].forEach((r, i) => {
+    cx.beginPath();
+    cx.arc(cx0, cy0, r, 0, Math.PI * 2);
+    cx.strokeStyle = 'rgba(201,168,76,' + [0.75, 0.45, 0.28][i] + ')';
+    cx.lineWidth   = [3, 1.5, 1][i];
+    cx.stroke();
+  });
+
+  /* 12 dot markers */
+  cx.fillStyle = 'rgba(201,168,76,0.55)';
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * Math.PI * 2 - Math.PI / 2;
+    cx.beginPath();
+    cx.arc(cx0 + Math.cos(a) * 195, cy0 + Math.sin(a) * 195, i % 3 === 0 ? 4 : 2.5, 0, Math.PI * 2);
+    cx.fill();
+  }
+
+  /* "GM" monogram */
+  cx.fillStyle = grd;
+  cx.font      = 'bold 108px Georgia, serif';
+  cx.textAlign = 'center';
+  cx.textBaseline = 'alphabetic';
+  cx.fillText('GM', cx0, cy0 + 40);
+
+  /* GRUPOMAKA */
+  cx.fillStyle = 'rgba(201,168,76,0.78)';
+  cx.font      = '500 24px Inter, Arial, sans-serif';
+  cx.letterSpacing = '6px';
+  cx.fillText('GRUPOMAKA', cx0, cy0 + 100);
+
+  /* DIVISIÓN FINANCIERA */
+  cx.fillStyle = 'rgba(161,161,161,0.55)';
+  cx.font      = '300 14px Inter, Arial, sans-serif';
+  cx.letterSpacing = '4px';
+  cx.fillText('DIVISIÓN FINANCIERA', cx0, cy0 + 130);
+
+  return new THREE.CanvasTexture(cv);
+}
+
+const logoTex = makeLogoTexture();
+const matLogo = new THREE.MeshStandardMaterial({
+  map:             logoTex,
+  alphaMap:        logoTex,
+  transparent:     true,
+  metalness:       0.92,
+  roughness:       0.10,
+  color:           new THREE.Color('#d4aa35'),
   envMapIntensity: 2.0,
+  side:            THREE.DoubleSide,
 });
 
-/* ── 5. COIN GROUP ────────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────────
+   4. COIN GROUP
+   Cylinder axis = Y → rotated -90° on X → axis becomes +Z
+   Coin face lies in XY plane; rim wraps around Z
+   ───────────────────────────────────────────────────────────── */
 const coinGroup = new THREE.Group();
 scene.add(coinGroup);
 
 /* RIM */
-const rimGeo = new THREE.CylinderGeometry(CR, CR, CT, 160, 1, true);
-const rim    = new THREE.Mesh(rimGeo, matGold);
-rim.rotation.x = Math.PI / 2;
-coinGroup.add(rim);
+const rimMesh = new THREE.Mesh(
+  new THREE.CylinderGeometry(CR, CR, CT, 160, 2, true),
+  matGold
+);
+rimMesh.rotation.x = -Math.PI / 2;
+coinGroup.add(rimMesh);
 
-/* Knurling stripe ring (subtle) */
+/* Knurling lines on rim (thin dark strips) */
 for (let i = 0; i < 80; i++) {
-  const a   = (i / 80) * Math.PI * 2;
-  const geo = new THREE.BoxGeometry(0.005, CT * 1.015, 0.012);
-  const m   = new THREE.Mesh(geo, matGoldDeep);
-  m.position.set(Math.cos(a) * CR, Math.sin(a) * CR, 0);
-  m.rotation.z = a;
-  rim.add(m);
+  const a  = (i / 80) * Math.PI * 2;
+  const sg = new THREE.Mesh(new THREE.BoxGeometry(0.007, 0.007, CT * 1.025), matGoldMd);
+  sg.position.set(Math.cos(a) * CR, Math.sin(a) * CR, 0);
+  coinGroup.add(sg);
 }
 
-/* FRONT FACE GROUP */
+/* FRONT FACE */
 const faceFront = new THREE.Group();
 faceFront.position.z = HT;
 coinGroup.add(faceFront);
 
-const frontDisk = new THREE.Mesh(
-  new THREE.CircleGeometry(CR - 0.015, 128),
-  matTitanium
-);
-faceFront.add(frontDisk);
+faceFront.add(new THREE.Mesh(new THREE.CircleGeometry(CR - 0.012, 128), matTi));
 
-/* BACK FACE GROUP */
+/* logo + rings on front face */
+const logoF = new THREE.Mesh(new THREE.CircleGeometry(CR * 0.93, 128), matLogo);
+logoF.position.z = 0.003;
+faceFront.add(logoF);
+
+[0.33, 0.50, 0.67, 0.84].forEach(f => {
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(CR * f, 0.004, 8, 128), mkMat('#c9a84c', 1, 0.12));
+  ring.position.z = 0.003;
+  faceFront.add(ring);
+});
+
+/* BACK FACE */
 const faceBack = new THREE.Group();
 faceBack.position.z = -HT;
 coinGroup.add(faceBack);
 
-const backDisk = new THREE.Mesh(
-  new THREE.CircleGeometry(CR - 0.015, 128),
-  matTitanium.clone()
-);
+const backDisk = new THREE.Mesh(new THREE.CircleGeometry(CR - 0.012, 128), matTi.clone());
 backDisk.rotation.y = Math.PI;
 faceBack.add(backDisk);
 
-/* Decorative concentric rings on both faces */
-[0.38, 0.55, 0.72, 0.88].forEach(frac => {
-  const r    = CR * frac;
-  const tGeo = new THREE.TorusGeometry(r, 0.005, 8, 160);
-  const tf   = new THREE.Mesh(tGeo, matGold);
-  tf.position.z = 0.002;
-  faceFront.add(tf);
+const logoB = new THREE.Mesh(new THREE.CircleGeometry(CR * 0.93, 128), matLogo.clone());
+logoB.position.z = -0.003;
+logoB.rotation.y = Math.PI;
+faceBack.add(logoB);
 
-  const tb = new THREE.Mesh(tGeo.clone(), matGold.clone());
-  tb.position.z = -0.002;
-  faceBack.add(tb);
+[0.33, 0.50, 0.67, 0.84].forEach(f => {
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(CR * f, 0.004, 8, 128), mkMat('#c9a84c', 1, 0.12));
+  ring.position.z = -0.003;
+  faceBack.add(ring);
 });
 
-/* Logo texture — gold engraving on both faces */
-const tLoader = new THREE.TextureLoader();
-tLoader.load('logo.png', tex => {
-  tex.needsUpdate = true;
-
-  const logoMat = new THREE.MeshStandardMaterial({
-    map:              tex,
-    alphaMap:         tex,
-    transparent:      true,
-    metalness:        0.95,
-    roughness:        0.1,
-    color:            new THREE.Color('#d4a830'),
-    envMapIntensity:  2.0,
-  });
-
-  const lGeo = new THREE.CircleGeometry(CR * 0.58, 128);
-
-  const logoF = new THREE.Mesh(lGeo, logoMat);
-  logoF.position.z = 0.003;
-  faceFront.add(logoF);
-
-  const logoB = new THREE.Mesh(lGeo.clone(), logoMat.clone());
-  logoB.position.z = -0.003;
-  logoB.rotation.y = Math.PI;
-  faceBack.add(logoB);
-});
-
-/* ── 6. SWISS WATCH MECHANISM ─────────────────────────────── */
+/* ─────────────────────────────────────────────────────────────
+   5. SWISS WATCH MECHANISM
+   ───────────────────────────────────────────────────────────── */
 const mechGroup = new THREE.Group();
 mechGroup.scale.setScalar(0);
 coinGroup.add(mechGroup);
 
 /* Plate */
-const plateMesh = new THREE.Mesh(
-  new THREE.CircleGeometry(CR * 0.92, 128),
-  new THREE.MeshStandardMaterial({
-    color:       new THREE.Color('#060606'),
-    metalness:   0.7,
-    roughness:   0.55,
-    transparent: true,
-    opacity:     0.92,
-  })
-);
-plateMesh.position.z = -0.05;
-mechGroup.add(plateMesh);
+mechGroup.add(new THREE.Mesh(new THREE.CircleGeometry(CR * 0.93, 128), matPlate));
 
 /* Pillar pins */
 for (let i = 0; i < 6; i++) {
-  const a = (i / 6) * Math.PI * 2;
+  const a   = (i / 6) * Math.PI * 2;
   const pin = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.022, 0.022, 0.055, 10),
-    matGold.clone()
+    new THREE.CylinderGeometry(0.022, 0.022, CT * 0.75, 10),
+    mkMat('#c9a84c', 1, 0.12)
   );
-  pin.position.set(Math.cos(a) * CR * 0.66, Math.sin(a) * CR * 0.66, 0);
+  pin.position.set(Math.cos(a) * CR * 0.68, Math.sin(a) * CR * 0.68, 0);
   pin.rotation.x = Math.PI / 2;
   mechGroup.add(pin);
 }
 
-/* Gear builder */
-function buildGear(teeth, innerR, outerR, depth) {
-  const shape   = new THREE.Shape();
-  const step    = (Math.PI * 2) / teeth;
+/* Gear tooth profile builder */
+function buildGear(teeth, ri, ro, depth) {
+  const shape = new THREE.Shape();
+  const step  = (Math.PI * 2) / teeth;
 
-  shape.moveTo(innerR * Math.cos(-step * 0.22), innerR * Math.sin(-step * 0.22));
+  shape.moveTo(ri * Math.cos(-step * 0.26), ri * Math.sin(-step * 0.26));
 
   for (let i = 0; i < teeth; i++) {
     const a = i * step;
-    shape.lineTo(outerR * Math.cos(a - step * 0.18), outerR * Math.sin(a - step * 0.18));
-    shape.lineTo(outerR * Math.cos(a + step * 0.18), outerR * Math.sin(a + step * 0.18));
-    shape.lineTo(innerR * Math.cos(a + step * 0.38), innerR * Math.sin(a + step * 0.38));
-    shape.lineTo(innerR * Math.cos((i + 1) * step - step * 0.38), innerR * Math.sin((i + 1) * step - step * 0.38));
+    shape.lineTo(ro * Math.cos(a - step * 0.16), ro * Math.sin(a - step * 0.16));
+    shape.lineTo(ro * Math.cos(a + step * 0.16), ro * Math.sin(a + step * 0.16));
+    shape.lineTo(ri * Math.cos(a + step * 0.26), ri * Math.sin(a + step * 0.26));
+    shape.lineTo(
+      ri * Math.cos((i + 1) * step - step * 0.26),
+      ri * Math.sin((i + 1) * step - step * 0.26)
+    );
   }
   shape.closePath();
 
   const hole = new THREE.Path();
-  hole.absarc(0, 0, innerR * 0.28, 0, Math.PI * 2, true);
+  hole.absarc(0, 0, ri * 0.28, 0, Math.PI * 2, true);
   shape.holes.push(hole);
 
   const geo = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false });
@@ -210,207 +223,189 @@ function buildGear(teeth, innerR, outerR, depth) {
   return geo;
 }
 
-/* Gear data: [teeth, innerR, outerR, depth, color, roughness, x, y, rotSpeed] */
-const gearData = [
-  [24, 0.48, 0.64, 0.07, '#c9a84c', 0.10,  0.00,  0.00,  0.30],
-  [16, 0.30, 0.40, 0.06, '#b8922a', 0.14,  0.88,  0.25, -0.46],
-  [10, 0.19, 0.27, 0.055,'#c9a84c', 0.10, -0.68, -0.52,  0.74],
-  [ 8, 0.15, 0.21, 0.05, '#e0c060', 0.08, -0.52,  0.68, -0.92],
-  [ 6, 0.11, 0.16, 0.05, '#b8922a', 0.16,  0.60, -0.65,  1.20],
-  [12, 0.24, 0.32, 0.055,'#d4a830', 0.12, -0.18,  0.82, -0.55],
+/* [teeth, ri, ro, depth, color, roughness, x, y, dir, speed] */
+const GEAR_DEF = [
+  [24, 0.46, 0.62, 0.072, '#c9a84c', 0.09,  0.00,  0.00,  1, 0.30],
+  [15, 0.29, 0.38, 0.062, '#b58c22', 0.14,  0.86,  0.24, -1, 0.48],
+  [10, 0.19, 0.26, 0.056, '#c9a84c', 0.09, -0.66, -0.52,  1, 0.72],
+  [ 8, 0.15, 0.21, 0.050, '#e0c060', 0.07, -0.50,  0.66, -1, 0.90],
+  [ 6, 0.12, 0.16, 0.044, '#b58c22', 0.15,  0.58, -0.64,  1, 1.20],
+  [12, 0.23, 0.31, 0.056, '#d4a830', 0.11, -0.18,  0.82, -1, 0.55],
 ];
 
-const gearMeshes = gearData.map(([teeth, ir, or_, dep, col, rou, x, y, spd]) => {
-  const mesh = new THREE.Mesh(buildGear(teeth, ir, or_, dep), matGear(col, rou));
-  mesh.position.set(x, y, 0.01);
-  mesh.userData.rotSpeed   = spd;
-  mesh.userData.originX    = x;
-  mesh.userData.originY    = y;
-  mechGroup.add(mesh);
-  return mesh;
+const gearMeshes = GEAR_DEF.map(([t, ri, ro, dep, col, rou, x, y, dir, spd]) => {
+  const m = new THREE.Mesh(buildGear(t, ri, ro, dep), mkMat(col, 1.0, rou));
+  m.position.set(x, y, 0.01);
+  m.userData = { dir, spd, ox: x, oy: y };
+  mechGroup.add(m);
+
+  /* Hub cylinder */
+  const hub = new THREE.Mesh(
+    new THREE.CylinderGeometry(ri * 0.32, ri * 0.32, dep * 1.1, 14),
+    mkMat('#c9a84c', 1, 0.12)
+  );
+  hub.rotation.x = Math.PI / 2;
+  m.add(hub);
+
+  return m;
 });
 
-/* ── 7. STUDIO LIGHTING ───────────────────────────────────── */
-scene.add(new THREE.AmbientLight(0xffffff, 0.08));
+/* ─────────────────────────────────────────────────────────────
+   6. STUDIO LIGHTING
+   ───────────────────────────────────────────────────────────── */
+scene.add(new THREE.AmbientLight(0xffffff, 0.07));
 
-/* Key — warm top-right */
-const keyLight = new THREE.DirectionalLight(0xfffbf0, 4.0);
+const keyLight = new THREE.DirectionalLight(0xfffbf0, 4.5);
 keyLight.position.set(3.5, 4, 5);
 scene.add(keyLight);
 
-/* Moving golden rim light */
-const rimLight = new THREE.PointLight(0xc9a84c, 6.0, 20);
-rimLight.position.set(-3, 1.5, 2.5);
+const rimLight = new THREE.PointLight(0xc9a84c, 7.0, 22);
 scene.add(rimLight);
 
-/* Fill — cool left */
-const fillLight = new THREE.DirectionalLight(0x7aa8ff, 0.9);
-fillLight.position.set(-4.5, 0, 2);
+const fillLight = new THREE.DirectionalLight(0x7aadff, 0.85);
+fillLight.position.set(-4, 0, 2);
 scene.add(fillLight);
 
-/* Bottom rim accent */
-const bottomLight = new THREE.PointLight(0xffd060, 2.2, 10);
+const bottomLight = new THREE.PointLight(0xffd060, 2.2, 12);
 bottomLight.position.set(0, -3.5, 2);
 scene.add(bottomLight);
 
-/* Backlight for silhouette */
-const backLight = new THREE.DirectionalLight(0xffffff, 0.5);
-backLight.position.set(0, 0, -6);
-scene.add(backLight);
+scene.add(Object.assign(new THREE.DirectionalLight(0xffffff, 0.45), {
+  position: new THREE.Vector3(0, 0, -6),
+}));
 
-/* Secondary gold bounce */
-const bounceLight = new THREE.PointLight(0xc9a84c, 1.5, 12);
-bounceLight.position.set(2, -2, 3);
-scene.add(bounceLight);
-
-/* ── 8. SCROLL STATE ──────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────────
+   7. SCROLL STATE
+   ───────────────────────────────────────────────────────────── */
 let scrollProg = 0;
 
 ScrollTrigger.create({
-  trigger:  '#hero',
+  trigger:  '.hero',
   start:    'top top',
-  end:      () => `+=${document.getElementById('scroll-spacer').offsetHeight + window.innerHeight}`,
-  scrub:    true,
+  end:      'bottom bottom',   // 500vh of hero
+  scrub:    2,
   onUpdate: self => { scrollProg = self.progress; },
 });
 
-/* ── 9. SECTION ANIMATIONS ────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────────
+   8. SECTION ENTRANCE ANIMATIONS
+   ───────────────────────────────────────────────────────────── */
 
-/* Hero entrance */
-const heroTL = gsap.timeline({ delay: 0.6 });
-heroTL
-  .to('.eyebrow',         { opacity: 1, y: 0, duration: 0.9, ease: 'power3.out' })
-  .to('.headline',        { opacity: 1, y: 0, duration: 1.1, ease: 'power3.out' }, '-=0.4')
-  .to('.hero-sub',        { opacity: 1, y: 0, duration: 0.9, ease: 'power3.out' }, '-=0.5')
-  .to('.hero-scroll-hint',{ opacity: 1, y: 0, duration: 0.7, ease: 'power2.out' }, '-=0.2');
+/* Hero text */
+gsap.timeline({ delay: 0.5 })
+  .to('.eyebrow',      { opacity: 1, y: 0, duration: 0.9, ease: 'power3.out' })
+  .to('.headline',     { opacity: 1, y: 0, duration: 1.1, ease: 'power3.out' }, '-=0.45')
+  .to('.hero-sub',     { opacity: 1, y: 0, duration: 0.9, ease: 'power3.out' }, '-=0.5')
+  .to('.scroll-hint',  { opacity: 1,        duration: 0.7, ease: 'power2.out' }, '-=0.3');
 
-/* Services stagger */
-document.querySelectorAll('.service-item').forEach((el, i) => {
+/* Services rows */
+document.querySelectorAll('.service-row').forEach((el, i) => {
   gsap.to(el, {
-    opacity:   1,
-    y:         0,
-    duration:  1.1,
-    delay:     i * 0.18,
-    ease:      'power3.out',
-    scrollTrigger: {
-      trigger:       el,
-      start:         'top 82%',
-      toggleActions: 'play none none none',
-    },
+    opacity: 1, y: 0,
+    duration: 1.1,
+    delay: i * 0.16,
+    ease: 'power3.out',
+    scrollTrigger: { trigger: el, start: 'top 82%', toggleActions: 'play none none none' },
   });
 });
 
-/* Mission columns */
-gsap.utils.toArray('.mission-col').forEach((el, i) => {
-  gsap.from(el, {
-    y:         80,
-    opacity:   0,
-    duration:  1.3,
-    delay:     i * 0.22,
-    ease:      'power3.out',
-    scrollTrigger: {
-      trigger:       '.mission',
-      start:         'top 75%',
-      toggleActions: 'play none none none',
-    },
+/* Mission / Vision headings & text */
+document.querySelectorAll('.mv-col h2, .mv-col p').forEach((el, i) => {
+  gsap.to(el, {
+    opacity: 1, y: 0,
+    duration: 1.2,
+    delay: i * 0.12,
+    ease: 'power3.out',
+    scrollTrigger: { trigger: '.vision', start: 'top 75%', toggleActions: 'play none none none' },
   });
 });
 
 /* Contact headline */
-gsap.from('.contact-headline', {
-  y:         80,
-  opacity:   0,
-  duration:  1.3,
-  ease:      'power3.out',
-  scrollTrigger: {
-    trigger:       '.contact',
-    start:         'top 75%',
-    toggleActions: 'play none none none',
-  },
+gsap.to('.contact-h2', {
+  opacity: 1, y: 0,
+  duration: 1.3,
+  ease: 'power3.out',
+  scrollTrigger: { trigger: '.contacto', start: 'top 75%', toggleActions: 'play none none none' },
 });
 
-/* ── 10. ANIMATION LOOP ───────────────────────────────────── */
-const clock = new THREE.Clock();
-let rimAngle = 0;
-
-/* Lerp helpers */
-let lerpRotX = 0;
-
+/* ─────────────────────────────────────────────────────────────
+   9. SMOOTH STEP HELPERS
+   ───────────────────────────────────────────────────────────── */
+function clamp01(v) { return Math.max(0, Math.min(1, v)); }
+function ss(t)      { const c = clamp01(t); return c * c * (3 - 2 * c); } // smoothstep
 function lerp(a, b, t) { return a + (b - a) * t; }
 
-function easeInOut(t) { return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; }
+/* ─────────────────────────────────────────────────────────────
+   10. COIN SCENE UPDATE  (called every frame)
+   ───────────────────────────────────────────────────────────── */
+let lerpRotX = 0;
+let elapsed  = 0;
+let rimAngle = 0;
 
-function updateScene(t, dt) {
-  /* Phase extents */
-  const p1 = Math.min(t / 0.20, 1);              // 0–20 %  : intro float
-  const p2 = Math.max(0, Math.min((t - 0.20) / 0.30, 1)); // 20–50 % : decouple
-  const p3 = Math.max(0, Math.min((t - 0.50) / 0.30, 1)); // 50–80 % : expand
-  const p4 = Math.max(0, Math.min((t - 0.80) / 0.20, 1)); // 80–100%: recede
+function updateScene(prog, dt) {
+  /* Phase 0→1 values */
+  const e2 = ss(clamp01((prog - 0.20) / 0.35)); // decouple  20–55%
+  const e3 = ss(clamp01((prog - 0.55) / 0.25)); // expand    55–80%
+  const e4 = ss(clamp01((prog - 0.80) / 0.20)); // recede    80–100%
 
-  const e2 = easeInOut(p2);
-  const e4 = easeInOut(p4);
-
-  /* ─ Coin scale & depth ─ */
+  /* ── Scale & depth recession */
   const sc = 1 - e4 * 0.52;
   coinGroup.scale.setScalar(sc);
-  coinGroup.position.z = -e4 * 2.5;
+  coinGroup.position.z = -e4 * 2.6;
 
-  /* ─ Tilt ─ */
-  const targetRotX = e2 * 0.45;
-  lerpRotX = lerp(lerpRotX, targetRotX, 0.06);
+  /* ── Tilt on decouple */
+  lerpRotX = lerp(lerpRotX, e2 * 0.48, 0.06);
   coinGroup.rotation.x = lerpRotX;
 
-  /* ─ Face separation ─ */
-  const sep = e2 * 1.3;
-  faceFront.position.z = HT + sep;
+  /* ── Spin (slows with scroll) */
+  const ySpd = (0.34 - prog * 0.22) * dt;
+  coinGroup.rotation.y += ySpd;
+
+  /* ── Vertical float */
+  coinGroup.position.y = Math.sin(elapsed * 1.1) * 0.07 * (1 - e4);
+  coinGroup.position.x = 0;
+
+  /* ── Face separation */
+  const sep = e2 * 1.35;
+  faceFront.position.z =  HT + sep;
   faceBack.position.z  = -(HT + sep);
 
-  /* Fade rim as faces separate */
-  matGold.opacity     = 1;
-  matGold.transparent = false;
-  rim.visible         = p2 < 0.95;
+  /* Hide rim while opening */
+  rimMesh.visible = e2 < 0.96;
 
-  /* ─ Mechanism reveal ─ */
-  const ms = e2;
-  mechGroup.scale.setScalar(ms);
+  /* ── Mechanism reveal */
+  mechGroup.scale.setScalar(e2);
 
-  /* ─ Gear expansion in p3 ─ */
-  const e3 = easeInOut(p3);
+  /* ── Gear expansion in e3 */
   gearMeshes.forEach(g => {
-    const ox = g.userData.originX;
-    const oy = g.userData.originY;
-    const boost = (Math.abs(ox) + Math.abs(oy)) * 1.6;
-    g.position.x = ox * (1 + e3 * boost);
-    g.position.y = oy * (1 + e3 * boost);
+    const boost = (Math.abs(g.userData.ox) + Math.abs(g.userData.oy)) * 1.8;
+    g.position.x = g.userData.ox * (1 + e3 * boost);
+    g.position.y = g.userData.oy * (1 + e3 * boost);
   });
-
-  /* ─ Continuous Y rotation (slows with scroll) ─ */
-  const ySpeed = 0.32 - t * 0.22;
-  coinGroup.rotation.y += ySpeed * dt;
-
-  /* ─ Gentle float ─ */
-  const elapsed = clock.elapsedTime;
-  const floatAmp = 0.07 * (1 - e4);
-  coinGroup.position.y = Math.sin(elapsed * 1.15) * floatAmp;
-  coinGroup.position.x = 0;
 }
+
+/* ─────────────────────────────────────────────────────────────
+   11. RENDER LOOP
+   ───────────────────────────────────────────────────────────── */
+const clock = new THREE.Clock();
 
 function animate() {
   requestAnimationFrame(animate);
 
   const dt = Math.min(clock.getDelta(), 0.05);
+  elapsed += dt;
 
-  /* Moving rim light orbit */
-  rimAngle += dt * 0.55;
+  /* Orbiting golden rim light */
+  rimAngle += dt * 0.52;
   rimLight.position.set(
-    Math.cos(rimAngle) * 3.8,
-    Math.sin(rimAngle * 0.6) * 2.0,
-    2.2 + Math.sin(rimAngle * 0.4) * 0.8
+    Math.cos(rimAngle) * 4.0,
+    Math.sin(rimAngle * 0.65) * 2.2,
+    2.4 + Math.sin(rimAngle * 0.38) * 0.9
   );
 
   /* Gear self-rotation */
   gearMeshes.forEach(g => {
-    g.rotation.z += g.userData.rotSpeed * dt;
+    g.rotation.z += g.userData.dir * g.userData.spd * dt;
   });
 
   updateScene(scrollProg, dt);
@@ -419,9 +414,12 @@ function animate() {
 
 animate();
 
-/* ── 11. RESIZE HANDLER ───────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────────
+   12. RESIZE
+   ───────────────────────────────────────────────────────────── */
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
+  setCameraZ();
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GRUPOMAKA — Financial Division</title>
+  <title>GRUPOMAKA — División Financiera</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -11,150 +11,139 @@
 </head>
 <body>
 
-  <!-- Three.js canvas — fixed, behind all content -->
+  <!-- Fixed 3D canvas — sits behind everything -->
   <canvas id="canvas"></canvas>
 
-  <!-- Smooth scroll wrapper -->
-  <div id="smooth-wrapper">
-    <div id="smooth-content">
+  <!-- ── HEADER ──────────────────────────────────── -->
+  <header class="header">
+    <div class="header-inner">
+      <a href="#inicio" class="logo-link">
+        <img src="logo.png" alt="GRUPOMAKA" class="logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'" />
+        <span class="logo-text" style="display:none">GRUPOMAKA</span>
+      </a>
+      <nav class="nav">
+        <a href="#inicio">Inicio</a>
+        <a href="#servicios">Servicios</a>
+        <a href="#vision">Visión</a>
+        <a href="#contacto">Contacto</a>
+      </nav>
+      <a href="#contacto" class="btn-ghost">Consultar Ahora</a>
+    </div>
+  </header>
 
-      <!-- ── HEADER ─────────────────────────────────── -->
-      <header class="header">
-        <div class="header-inner">
-          <a href="#" class="logo-link">
-            <img src="logo.png" alt="GRUPOMAKA" class="logo" />
-          </a>
-          <nav class="nav">
-            <a href="#services">Services</a>
-            <a href="#mission">Mission</a>
-            <a href="#contact">Contact</a>
-          </nav>
-          <div class="nav-cta">
-            <a href="#contact" class="btn-ghost">Consult Now</a>
+  <!-- ── HERO — 500vh scroll driver ───────────────── -->
+  <section class="hero" id="inicio">
+    <div class="hero-sticky">
+      <div class="hero-content">
+        <span class="eyebrow">División Financiera · GRUPOMAKA</span>
+        <h1 class="headline">
+          INGENIERÍA<br>FINANCIERA<br>REDEFINIDA
+        </h1>
+        <p class="hero-sub">
+          Donde la precisión forja el legado.<br>
+          Construida para los arquitectos de la riqueza.
+        </p>
+        <div class="scroll-hint">
+          <div class="scroll-bar"></div>
+          <span>DESPLAZA PARA EXPLORAR</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SERVICIOS ─────────────────────────────── -->
+  <section class="servicios" id="servicios">
+    <div class="wrap">
+      <p class="section-tag">Nuestros Servicios</p>
+
+      <div class="service-row">
+        <span class="svc-num">01</span>
+        <div class="svc-body">
+          <h3>Asesoría Fiscal</h3>
+          <p>Ingeniería fiscal estratégica para maximizar la eficiencia y preservar el capital en todas las jurisdicciones. Cada estructura, calibrada al detalle.</p>
+        </div>
+        <div class="svc-rule"></div>
+      </div>
+
+      <div class="service-row">
+        <span class="svc-num">02</span>
+        <div class="svc-body">
+          <h3>Estructuras Corporativas</h3>
+          <p>Arquitecturas legales a medida diseñadas para proteger y multiplicar el patrimonio institucional. Construidas para perdurar generaciones.</p>
+        </div>
+        <div class="svc-rule"></div>
+      </div>
+
+      <div class="service-row">
+        <span class="svc-num">03</span>
+        <div class="svc-body">
+          <h3>Asesoría Legal</h3>
+          <p>Orientación legal de precisión para transacciones financieras complejas, marcos regulatorios y cumplimiento jurisdiccional internacional.</p>
+        </div>
+        <div class="svc-rule"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── VISIÓN / MISIÓN ───────────────────────── -->
+  <section class="vision" id="vision">
+    <div class="wrap">
+      <div class="mv-grid">
+        <div class="mv-col">
+          <p class="section-tag">Misión</p>
+          <h2>Arquitectura<br>de Precisión<br>Financiera</h2>
+          <p>Diseñamos estructuras financieras con la exactitud de la relojería suiza — cada mecanismo con propósito, cada resultado inevitable.</p>
+        </div>
+        <div class="mv-divider"></div>
+        <div class="mv-col">
+          <p class="section-tag">Visión</p>
+          <h2>Un Legado<br>Sin<br>Medida</h2>
+          <p>Redefinir el estándar de excelencia financiera en América Latina, construyendo instituciones diseñadas para perdurar a través de las generaciones.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── CONTACTO ──────────────────────────────── -->
+  <section class="contacto" id="contacto">
+    <div class="wrap">
+      <p class="section-tag">Contacto</p>
+      <h2 class="contact-h2">Inicia Tu<br>Arquitectura<br>Financiera</h2>
+
+      <div class="contact-row">
+        <div class="contact-info">
+          <div class="cinfo">
+            <span class="ci-label">Ubicación</span>
+            <span class="ci-val">Torre Mitikah, Piso 22<br>Av. Insurgentes Sur 1602<br>Ciudad de México, CDMX</span>
+          </div>
+          <div class="cinfo">
+            <span class="ci-label">Correo</span>
+            <span class="ci-val">contacto@grupomaka.com</span>
+          </div>
+          <div class="cinfo">
+            <span class="ci-label">Teléfono</span>
+            <span class="ci-val">+52 55 0000 0000</span>
           </div>
         </div>
-      </header>
+        <a href="mailto:contacto@grupomaka.com" class="btn-primary">
+          Agendar Consulta
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+            <path d="M2.5 7.5h10M9 4l3.5 3.5L9 11" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>
+      </div>
+    </div>
 
-      <!-- ── HERO ──────────────────────────────────── -->
-      <section class="hero" id="hero">
-        <div class="hero-content">
-          <div class="hero-text">
-            <span class="eyebrow">GRUPOMAKA Financial Division</span>
-            <h1 class="headline">FINANCIAL<br>ENGINEERING<br>REDEFINED</h1>
-            <p class="hero-sub">Where precision meets legacy.<br>Built for the architects of wealth.</p>
-            <div class="hero-scroll-hint">
-              <span class="scroll-label">SCROLL TO EXPLORE</span>
-              <div class="scroll-line"></div>
-            </div>
-          </div>
-        </div>
-      </section>
+    <div class="footer-line">
+      <span>© 2024 GRUPOMAKA División Financiera. Todos los derechos reservados.</span>
+      <span>Torre Mitikah · Ciudad de México</span>
+    </div>
+  </section>
 
-      <!-- ── SCROLL SPACER (drives the 3D animation) ── -->
-      <div class="scroll-spacer" id="scroll-spacer"></div>
-
-      <!-- ── SERVICES ───────────────────────────────── -->
-      <section class="services" id="services">
-        <div class="section-inner">
-          <div class="section-label">OUR EXPERTISE</div>
-          <div class="services-grid">
-
-            <div class="service-item">
-              <div class="service-num">01</div>
-              <div class="service-body">
-                <h3>Tax Advisory</h3>
-                <p>Strategic fiscal engineering to maximise efficiency and preserve capital across jurisdictions. Every structure calibrated to the decimal.</p>
-              </div>
-              <div class="service-accent"></div>
-            </div>
-
-            <div class="service-item">
-              <div class="service-num">02</div>
-              <div class="service-body">
-                <h3>Corporate Structures</h3>
-                <p>Bespoke legal architectures designed to protect and compound institutional wealth at scale — built to outlast generations.</p>
-              </div>
-              <div class="service-accent"></div>
-            </div>
-
-            <div class="service-item">
-              <div class="service-num">03</div>
-              <div class="service-body">
-                <h3>Legal Counsel</h3>
-                <p>Precision legal guidance for complex financial transactions, regulatory frameworks, and cross-border compliance.</p>
-              </div>
-              <div class="service-accent"></div>
-            </div>
-
-          </div>
-        </div>
-      </section>
-
-      <!-- ── MISSION / VISION ────────────────────────── -->
-      <section class="mission" id="mission">
-        <div class="section-inner">
-          <div class="mission-grid">
-            <div class="mission-col" data-parallax="-60">
-              <div class="section-label">MISSION</div>
-              <h2>Architecting<br>Financial<br>Precision</h2>
-              <p>We engineer financial structures with the exactitude of Swiss watchmaking — every mechanism purposeful, every outcome inevitable.</p>
-            </div>
-            <div class="mission-divider"></div>
-            <div class="mission-col" data-parallax="-30">
-              <div class="section-label">VISION</div>
-              <h2>Legacy<br>Beyond<br>Measure</h2>
-              <p>To redefine the standard of financial excellence in Latin America, building institutions designed to endure across generations.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ── CONTACT ────────────────────────────────── -->
-      <section class="contact" id="contact">
-        <div class="section-inner">
-          <div class="contact-header">
-            <div class="section-label">BEGIN</div>
-            <h2 class="contact-headline">Begin Your<br>Financial<br>Architecture</h2>
-          </div>
-          <div class="contact-body">
-            <div class="contact-details">
-              <div class="contact-group">
-                <span class="detail-label">LOCATION</span>
-                <span class="detail-value">Mitikah Tower<br>Mexico City, Mexico</span>
-              </div>
-              <div class="contact-group">
-                <span class="detail-label">EMAIL</span>
-                <span class="detail-value">contact@grupomaka.com</span>
-              </div>
-              <div class="contact-group">
-                <span class="detail-label">PHONE</span>
-                <span class="detail-value">+52 55 0000 0000</span>
-              </div>
-            </div>
-            <div class="contact-action">
-              <a href="mailto:contact@grupomaka.com" class="btn-primary">
-                <span>Schedule a Consultation</span>
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </a>
-            </div>
-          </div>
-        </div>
-        <div class="footer-bar">
-          <span>© 2024 GRUPOMAKA Financial Division. All rights reserved.</span>
-          <span>Mitikah Tower, Mexico City</span>
-        </div>
-      </section>
-
-    </div><!-- /smooth-content -->
-  </div><!-- /smooth-wrapper -->
-
-  <!-- ── SCRIPTS ─────────────────────────────────────── -->
+  <!-- Scripts -->
   <script src="https://unpkg.com/three@0.155.0/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollSmoother.min.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
